@@ -21,18 +21,29 @@ class OtpController extends Controller
             'phoneNumber' => 'required|string',
             'message' => 'required|string',
         ]);
-
+    
         $response = Http::withToken($this->token)
             ->post($this->apiUrl, [
                 'phoneNumber' => $request->phoneNumber,
                 'message' => $request->message,
                 'senderID' => 'MyApp'
             ]);
-
-        if ($response->successful()) {
-            return back()->with('success', 'تم إرسال الرسالة بنجاح');
+    
+        // نحول الاستجابة إلى مصفوفة
+        $data = $response->json();
+    
+        // إذا الـ status = success
+        if (isset($data['status']) && $data['status'] === 'success') {
+            return back()->with('success', '✅ تم إرسال الرسالة بنجاح إلى ' . $data['phoneNo']);
         }
-
-        return back()->with('error', 'فشل في إرسال الرسالة');
+    
+        // لو فيه خطأ من الـ API
+        if (isset($data['status']) && $data['status'] === 'error') {
+            return back()->with('error', '❌ فشل الإرسال: ' . ($data['message'] ?? 'خطأ غير معروف'));
+        }
+    
+        // لو الـ API رجع استجابة غير متوقعة
+        return back()->with('error', '⚠️ حدث خطأ غير متوقع أثناء الاتصال بخدمة الرسائل.');
     }
+    
 }
